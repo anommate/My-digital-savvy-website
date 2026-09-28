@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── MDS DESIGN TOKENS ──────────────────────────────────────────
+   Ported 1:1 from the production tokens in my-digital-savvy-v2.html.
+   MDS is a single fixed dark identity, not a light/dark toggle — these
+   live directly on :root rather than behind a .dark class. --accent is
+   rewritten at runtime (see lib/motion/rotor.ts) as the hero word rotor
+   cycles through --mds-green / --mds-blue / --mds-magenta / --mds-dot;
+   every component that should track that cycle (hover states, focus
+   rings, link underlines) reads --accent, not a fixed color. */
+:root {
+  --mds-paper: #080808;
+  --mds-paper-hi: #0f0f0f;
+  --mds-ink: #efefef;
+  --mds-ash: #808080;
+  --mds-rule: #1a1a1a;
+  --mds-dot: #01fefb;
+  --mds-green: #3bff45;
+  --mds-blue: #4daaff;
+  --mds-magenta: #d42df5;
+  --accent: var(--mds-dot);
+
+  --mds-pad: clamp(20px, 5vw, 80px);
+  --mds-ease-reveal: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --mds-ease-out: cubic-bezier(0.16, 0.84, 0.28, 1);
+
+  /* shadcn semantic slots, mapped onto the tokens above rather than
+     shadcn's generic neutral palette — every shadcn/ui and Base UI
+     primitive inherits the real MDS identity for free. */
+  --background: var(--mds-paper);
+  --foreground: var(--mds-ink);
+  --card: var(--mds-paper-hi);
+  --card-foreground: var(--mds-ink);
+  --popover: var(--mds-paper-hi);
+  --popover-foreground: var(--mds-ink);
+  --primary: var(--mds-ink);
+  --primary-foreground: var(--mds-paper);
+  --secondary: var(--mds-paper-hi);
+  --secondary-foreground: var(--mds-ink);
+  --muted: var(--mds-paper-hi);
+  --muted-foreground: var(--mds-ash);
+  --accent-foreground: #000000;
+  --destructive: #ff5c5c;
+  --destructive-foreground: var(--mds-ink);
+  --border: var(--mds-rule);
+  --input: var(--mds-rule);
+  --ring: var(--mds-dot);
+  --radius: 0.625rem;
+  --sidebar: var(--mds-paper-hi);
+  --sidebar-foreground: var(--mds-ink);
+  --sidebar-primary: var(--mds-ink);
+  --sidebar-primary-foreground: var(--mds-paper);
+  --sidebar-accent: var(--mds-paper-hi);
+  --sidebar-accent-foreground: var(--mds-ink);
+  --sidebar-border: var(--mds-rule);
+  --sidebar-ring: var(--mds-dot);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-sans);
+
+  /* raw brand tokens exposed as Tailwind utilities: bg-mds-paper-hi,
+     text-mds-ash, border-mds-rule, ease-mds-reveal, p-mds-pad, etc. */
+  --color-mds-paper: var(--mds-paper);
+  --color-mds-paper-hi: var(--mds-paper-hi);
+  --color-mds-ink: var(--mds-ink);
+  --color-mds-ash: var(--mds-ash);
+  --color-mds-rule: var(--mds-rule);
+  --color-mds-dot: var(--mds-dot);
+  --color-mds-green: var(--mds-green);
+  --color-mds-blue: var(--mds-blue);
+  --color-mds-magenta: var(--mds-magenta);
+  --spacing-mds-pad: var(--mds-pad);
+  --ease-mds-reveal: var(--mds-ease-reveal);
+  --ease-mds-out: var(--mds-ease-out);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  ::selection {
+    background: var(--accent);
+    color: #000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
