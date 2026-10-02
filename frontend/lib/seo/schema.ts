@@ -36,11 +36,6 @@ export const ORGANIZATION_FACTS = {
     "https://www.instagram.com/mydigitalsavvy/",
     "https://www.linkedin.com/company/my-digital-savvy/",
   ],
-  aggregateRating: {
-    ratingValue: "4.9",
-    reviewCount: "320",
-    bestRating: "5",
-  },
 } as const;
 
 export function buildLocalBusinessSchema() {
@@ -60,10 +55,8 @@ export function buildLocalBusinessSchema() {
     })),
     areaServed: f.areaServed,
     sameAs: f.sameAs,
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ...f.aggregateRating,
-    },
+    // No aggregateRating: Google does not allow a business to mark up
+    // reviews of itself, and it risks a structured-data manual action.
   };
 }
 
@@ -105,6 +98,68 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
       position: index + 1,
       name: item.name,
       item: item.url,
+    })),
+  };
+}
+
+/* ── Phase 5 builders ────────────────────────────────────────────── */
+
+const ORG_ID = `${ORGANIZATION_FACTS.url}/#organization`;
+
+/** Every page. LocalBusiness (home + contact) refers back to it by @id. */
+export function buildOrganizationSchema() {
+  const f = ORGANIZATION_FACTS;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": ORG_ID,
+    name: f.name,
+    url: `${f.url}/`,
+    email: f.email,
+    telephone: f.telephone,
+    foundingDate: f.foundingDate,
+    sameAs: f.sameAs,
+  };
+}
+
+/** Service page. `provider` points at the Organization; no ratings or offers are claimed. */
+export function buildServiceSchema(service: {
+  name: string;
+  description?: string | null;
+  url: string;
+  serviceType?: string | null;
+  areaServed?: string[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: service.name,
+    ...(service.description ? { description: service.description } : {}),
+    ...(service.serviceType ? { serviceType: service.serviceType } : {}),
+    url: service.url,
+    provider: {
+      "@type": "Organization",
+      "@id": ORG_ID,
+      name: ORGANIZATION_FACTS.name,
+    },
+    areaServed: (service.areaServed ?? ["Nagpur"]).map((name) => ({
+      "@type": "City",
+      name,
+    })),
+  };
+}
+
+/** Only for FAQs actually shown on the page. Returns null when there are none. */
+export function buildFaqSchema(faqs: { question: string; answer: string }[]) {
+  const items = faqs.filter((f) => f.question && f.answer);
+  if (!items.length) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
     })),
   };
 }

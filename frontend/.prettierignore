@@ -1,3 +1,10 @@
 .next
 node_modules
 pnpm-lock.yaml
+
+# Verbatim port of my-digital-savvy-v2.html. Keep byte-for-byte diffable
+# against the reference; never auto-format.
+styles/mds
+
+# Next.js dev log output
+*.log

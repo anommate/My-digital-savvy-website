@@ -1,22 +1,35 @@
-import { wpFetchList } from "./client";
-import type { Testimonial, WPTestimonial } from "./types";
+import "server-only";
+import type { TestimonialModel } from "@/types/content";
+import { htmlToText } from "./html-blocks";
+import { listObjects } from "./objects";
+import { imageField, title } from "./normalize";
+import type { WPTestimonial } from "./types";
 
-function normalizeTestimonial(testimonial: WPTestimonial): Testimonial {
+export async function normalizeTestimonial(
+  t: WPTestimonial
+): Promise<TestimonialModel> {
+  const f = t.acf ?? {};
+  const rating =
+    f.rating === undefined || f.rating === "" ? null : Number(f.rating);
   return {
-    id: testimonial.id,
-    authorName: testimonial.acf?.author_name ?? "",
-    authorRole: testimonial.acf?.author_role ?? null,
-    authorCompany: testimonial.acf?.author_company ?? null,
-    quote: testimonial.acf?.quote ?? "",
-    rating: testimonial.acf?.rating ?? null,
-    featured: testimonial.acf?.featured ?? false,
+    id: t.id,
+    name: f.name ? htmlToText(f.name) : title(t),
+    company: f.company ? htmlToText(f.company) : null,
+    designation: f.designation ? htmlToText(f.designation) : null,
+    photo: await imageField(f.photo),
+    review: htmlToText(f.review ?? t.content?.rendered),
+    rating:
+      rating !== null && Number.isFinite(rating)
+        ? Math.max(0, Math.min(5, rating))
+        : null,
+    source: f.source ? htmlToText(f.source) : null,
+    sourceUrl: f.source_url || null,
   };
 }
 
-/** Real, verified reviews only — never invent or pad this list. */
-export async function getTestimonials(): Promise<Testimonial[]> {
-  const testimonials = await wpFetchList<WPTestimonial>("wp/v2/testimonial", {
-    searchParams: { per_page: 50 },
-  });
-  return testimonials.map(normalizeTestimonial);
+/** Real reviews only; never padded. [] until the testimonial type exists. */
+export async function listTestimonials(): Promise<TestimonialModel[]> {
+  const items = await listObjects<WPTestimonial>("testimonial");
+  const all = await Promise.all(items.map(normalizeTestimonial));
+  return all.filter((t) => t.name && t.review);
 }

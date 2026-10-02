@@ -1,41 +1,46 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { getPosts } from "@/lib/wordpress";
+import { blogArchive } from "@/lib/content/entries";
+import { getPathIndex } from "@/lib/wordpress";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { ArchiveView } from "@/components/content/views/ArchiveView";
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: "Marketing notes from My Digital Savvy, Nagpur.",
-};
+/**
+ * /blog/ is a new, convenient URL. The established blog index is the
+ * WordPress posts page (/my-digital-savvy-blog/), which keeps its URL and
+ * rankings, so this page canonicalises to it instead of competing with it.
+ */
+export const revalidate = 3600;
 
-export default async function BlogIndexPage() {
-  const posts = await getPosts();
+async function load() {
+  const index = await getPathIndex().catch(() => null);
+  const entry = index?.entries.find((e) => e.kind === "blog-index") ?? null;
+  const model = await blogArchive(entry, 1).catch(() => null);
+  return { entry, model };
+}
 
+export async function generateMetadata(): Promise<Metadata> {
+  const { entry, model } = await load();
+  const meta = buildMetadata(model?.seo ?? null, {
+    path: entry?.path ?? "/blog/",
+    title: "Blog",
+    description: "Marketing notes from My Digital Savvy, Nagpur.",
+  });
+  return meta;
+}
+
+export default async function BlogPage() {
+  const { entry, model } = await load();
+  if (!model) {
+    return (
+      <main className="wrap cx-section">
+        <p className="hero-sub">The blog is temporarily unavailable.</p>
+      </main>
+    );
+  }
   return (
-    <main className="p-mds-pad mx-auto max-w-3xl">
-      <h1 className="text-3xl font-extrabold tracking-tight uppercase">Blog</h1>
-      {posts.length > 0 ? (
-        <ul className="divide-mds-rule mt-8 divide-y">
-          {posts.map((post) => (
-            <li key={post.id} className="py-6">
-              <Link
-                href={`/blog/${post.slug}`}
-                className="text-lg font-bold hover:text-[var(--accent)]"
-              >
-                {post.title}
-              </Link>
-              <p
-                className="text-mds-ash mt-2 text-sm"
-                dangerouslySetInnerHTML={{ __html: post.excerpt }}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-mds-ash mt-6 text-sm">
-          No posts published yet, or WordPress isn&apos;t connected — nothing to
-          fake here.
-        </p>
-      )}
-    </main>
+    <ArchiveView
+      model={{ ...model, basePath: entry?.path ?? "/blog/" }}
+      blogPath={entry?.path ?? "/blog/"}
+    />
   );
 }

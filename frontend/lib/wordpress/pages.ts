@@ -1,31 +1,29 @@
-import { wpFetchList } from "./client";
-import { normalizeMedia, normalizeSeo, type Page, type WPPage } from "./types";
+import "server-only";
+import type { GenericPageModel, PathEntry } from "@/types/content";
+import { htmlToBlocks } from "./html-blocks";
+import { getObject, type ReadOptions } from "./objects";
+import { normalizeSeo, title } from "./normalize";
+import type { WPPage } from "./types";
 
-function normalizePage(page: WPPage): Page {
+/** Any WordPress page without a dedicated template (e.g. /thank-you/). */
+export async function getGenericPage(
+  entry: PathEntry,
+  opts: ReadOptions = {}
+): Promise<GenericPageModel | null> {
+  const page = await getObject<WPPage>("page", entry.id, opts);
+  if (!page) return null;
   return {
+    kind: "page",
     id: page.id,
-    slug: page.slug,
-    title: page.title.rendered,
-    content: page.content.rendered,
-    excerpt: page.excerpt.rendered,
-    featuredImage: normalizeMedia(page._embedded?.["wp:featuredmedia"]?.[0]),
+    path: entry.path,
+    title: title(page),
+    body: htmlToBlocks(page.content?.rendered).blocks,
     seo: normalizeSeo(page.yoast_head_json),
   };
 }
 
-/** All pages, embedding featured media and (if the Yoast SEO plugin is active) SEO meta. */
-export async function getPages(): Promise<Page[]> {
-  const pages = await wpFetchList<WPPage>("wp/v2/pages", {
-    searchParams: { _embed: true, per_page: 100 },
-  });
-  return pages.map(normalizePage);
-}
-
-/** A single page by slug, or null if it doesn't exist / WordPress is unreachable. */
-export async function getPage(slug: string): Promise<Page | null> {
-  const pages = await wpFetchList<WPPage>("wp/v2/pages", {
-    searchParams: { slug, _embed: true },
-  });
-  const page = pages[0];
-  return page ? normalizePage(page) : null;
+/** The blog index page's own Yoast data (title/description of /my-digital-savvy-blog/). */
+export async function getPageSeo(entry: PathEntry) {
+  const page = await getObject<WPPage>("page", entry.id);
+  return page ? normalizeSeo(page.yoast_head_json) : null;
 }
