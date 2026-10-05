@@ -1,6 +1,19 @@
 import type { GrowthContent } from "@/types/home";
 import { accentStyle, cssVars } from "@/components/ui/accent";
 import { GrowthScroll } from "@/components/interactions/GrowthScroll";
+import { LottieVisual } from "@/components/interactions/LottieVisual";
+
+/** One illustration per stage, in stage order: Traffic, Ads & SEO,
+ *  Website, Lead, WhatsApp & Sales, Growth. `still` is the finished
+ *  frame shown under reduced motion. */
+const STAGE_VISUALS = [
+  { name: "growth-traffic", still: 50 },
+  { name: "growth-ads", still: 140 },
+  { name: "growth-website", still: 150 },
+  { name: "growth-lead", still: 140 },
+  { name: "growth-whatsapp", still: 170 },
+  { name: "growth-growth", still: 150 },
+];
 
 export function GrowthSystem({ growth }: { growth: GrowthContent }) {
   const n = growth.stages.length;
@@ -44,6 +57,16 @@ export function GrowthSystem({ growth }: { growth: GrowthContent }) {
                   </span>
                   <h3>{s.title}</h3>
                   <p>{s.body}</p>
+                  {STAGE_VISUALS[i] && (
+                    <LottieVisual
+                      className="growth-visual"
+                      name={STAGE_VISUALS[i].name}
+                      still={STAGE_VISUALS[i].still}
+                      width={400}
+                      height={300}
+                      gate=".growth-card"
+                    />
+                  )}
                 </article>
               ))}
             </div>

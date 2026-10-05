@@ -101,7 +101,7 @@ h1 {
   height: 0;
   will-change: height;
 }
-.rotor .fill span {
+.rotor .fill > span {
   position: absolute;
   left: 0; bottom: 0;
   white-space: nowrap;

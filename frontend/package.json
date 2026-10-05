@@ -10,6 +10,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
+    "lottie:build": "node scripts/lottie/build-lottie.mjs",
+    "check:hero-accent": "node scripts/checks/hero-accent.mjs",
     "migrate:build": "tsx scripts/migration/build-payloads.ts",
     "migrate:import": "tsx scripts/migration/import.ts"
   },
@@ -17,6 +19,7 @@
     "@base-ui/react": "^1.8.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "lottie-web": "^5.13.0",
     "lucide-react": "^1.48.0",
     "motion": "^13.4.2",
     "next": "16.3.6",

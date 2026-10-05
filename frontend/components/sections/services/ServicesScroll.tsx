@@ -30,8 +30,11 @@ export function ServicesScroll() {
     ).matches;
     const step = 15;
     // Server markup already shows panel 0. Starting "active" at 0 skips the
-    // reference's initial --accent write, which its hero rotor (a later
-    // script) immediately overrode, so the rotor's colour wins here too.
+    // reference's initial --accent write: until the first panel change the
+    // page accent keeps its token value, which matches panel 0's colour
+    // (dot) in the current content. The hero rotor no longer writes the
+    // page accent (its colour stays inside the hero), so nothing overrides
+    // a panel's colour here.
     let active = 0;
     let ticking = false;
 

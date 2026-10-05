@@ -23,8 +23,9 @@
    The real values live in styles/mds/01-tokens.css (--paper, --ink, --dot…).
    These aliases keep the existing mds-* Tailwind utilities and the shadcn
    semantic slots pointing at the same values, so nothing defines a colour
-   twice. --accent is NOT redefined here: the hero rotor and services scroll
-   rewrite it at runtime on <html>. */
+   twice. --accent is NOT redefined here: the services scroll rewrites it
+   at runtime on <html>. The hero rotor's colour is local to the hero
+   (--hero-accent, see styles/mds/32-visuals.css). */
 :root {
   --mds-paper: var(--paper);
   --mds-paper-hi: var(--paper-hi);

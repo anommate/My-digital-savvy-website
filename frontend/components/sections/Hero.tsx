@@ -1,10 +1,15 @@
 import type { HeroContent } from "@/types/home";
 import { HeroRotor } from "@/components/interactions/HeroRotor";
 import { RichText } from "@/components/ui/rich-text";
+import { HeroVisual } from "@/components/interactions/HeroVisual";
 
 export function Hero({ hero }: { hero: HeroContent }) {
   return (
     <section className="hero wrap" id="top">
+      {/* "Pays for itself": spend bars, the return line climbing past them.
+          Takes the rotor word's colour via --hero-accent, which is local to
+          this section; placed by measurement. */}
+      <HeroVisual />
       <div className="eyebrow reveal">
         <span className="pip" aria-hidden="true"></span>
         <span className="label">{hero.eyebrow}</span>
