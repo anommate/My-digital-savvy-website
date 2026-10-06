@@ -45,6 +45,8 @@ export type Effect = {
   live(): number;
   /** Mars: a dust front sweeping across the visible face, -1..1 */
   dustFront?: () => { at: number; amount: number } | null;
+  /** builds size-dependent sprites ahead of time (idle warm-up) */
+  prepare?: (r: number) => void;
 };
 
 type RGB = [number, number, number];
@@ -446,6 +448,9 @@ function sunEffect(budget: number, rand: () => number): Effect {
   };
 
   return {
+    prepare(r) {
+      coronaSprite(r);
+    },
     live() {
       let n = 0;
       for (let i = 0; i < flames.n; i++)

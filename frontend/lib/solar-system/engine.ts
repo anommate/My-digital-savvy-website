@@ -188,6 +188,8 @@ const DIP = 0.16;
 const SUN_BACK = 0.6;
 /** zoom while a planet (not the Sun) has the focus */
 const PLANET_ZOOM = 1.1;
+/** phone band: height of the soft fade along its top edge, px */
+const TOP_FADE = 14;
 const MAP_ROWS = 128;
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -312,6 +314,7 @@ export function createSolarSystem(
   let sunSpriteSize = 0;
   let starPad = 0;
   let fade: CanvasGradient | null = null;
+  let fadeTop: CanvasGradient | null = null;
   // camera
   let sNow = 0;
   let camX = 0;
@@ -323,6 +326,9 @@ export function createSolarSystem(
   const budget = opts.lowPower ? 100 : 300;
   const maxD = opts.lowPower ? 160 : 256;
   const luts = new Map<number, GlobeLut>();
+  // one-time setup done in idle time (see warmUp), never mid-transition
+  let warmId = 0;
+  let warmQueue: (() => void)[] = [];
   const labels = new Map<
     string,
     { canvas: HTMLCanvasElement; w: number; h: number }
@@ -407,9 +413,10 @@ export function createSolarSystem(
 
   /** extent of the focused body itself (effects, rings), in body radii */
   function bodyExtent(b: BodyState, axis: "x" | "y") {
-    // in the short phone band the Sun's soft outer corona may run past the
-    // band's edges (the lower one fades out); its flames must fit
-    let ext = b.index === 0 && !vertical ? 1.45 : b.style.reach;
+    // in the short phone band only the faintest rim of the Sun's corona
+    // may run past the band's edges (both fade out); its flames, and most
+    // of the corona, must fit
+    let ext = b.index === 0 && !vertical ? 1.7 : b.style.reach;
     const d = b.data;
     if (d.rings)
       ext = Math.max(
@@ -493,7 +500,9 @@ export function createSolarSystem(
       ? Math.min(W * 0.25, H * 0.115)
       : Math.min(W * 0.2, H * 0.4);
     const hx = Math.min(fx, W - fx) - 8;
-    const hy = Math.min(fy, H - fy) - 8;
+    // the phone band's top edge is the top of the screen: keep the focused
+    // body a little further from it than the soft fade (see edgeFade)
+    const hy = Math.min(fy, H - fy) - (vertical ? 8 : TOP_FADE + 4);
     // Planets share one scale so their focused views keep the real order
     // (Jupiter > Saturn > Uranus ≈ Neptune > Earth ≈ Venus > Mars >
     // Mercury), compressed so even Mercury fills the frame. In focus a
@@ -540,6 +549,7 @@ export function createSolarSystem(
       a: 0.05 + rand() * 0.2,
     }));
     fade = null;
+    fadeTop = null;
   }
 
   function ensureSprites() {
@@ -855,6 +865,60 @@ export function createSolarSystem(
       ctx.fillStyle = `rgba(8,8,8,${(1 - dim).toFixed(3)})`;
       ctx.fill();
     }
+  }
+
+  /** the globe size a body is drawn at when fully in focus */
+  const focusD = (b: BodyState) =>
+    clamp(Math.ceil((b.fR * 2 * dpr) / 32) * 32, 32, maxD);
+
+  /**
+   * Prepares, in idle time and nearest services first, everything a body
+   * needs the first time it comes into focus: its effect (particle pools,
+   * sprites, the Sun's corona), its label and its globe lookup table at
+   * its focused size. Done once per size; nothing here runs while the
+   * page is busy, so a first visit to a planet doesn't cost a frame.
+   */
+  function warmUp() {
+    if (opts.reducedMotion) return;
+    cancelWarm();
+    const here = clamp(sNow, 0, maxS);
+    const order = bodies
+      .slice(0, maxS + 1)
+      .sort((a, b) => Math.abs(a.index - here) - Math.abs(b.index - here));
+    for (const b of order) {
+      warmQueue.push(() => {
+        if (!b.effect)
+          b.effect = createEffect(b.data.id, budget, b.data.rings ?? undefined);
+        b.effect?.prepare?.(b.fR);
+        labelImage(b.index, W < 120 ? 9 : 10.5);
+      });
+      warmQueue.push(() => void lutFor(focusD(b)));
+    }
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    };
+    const schedule = () => {
+      warmId = w.requestIdleCallback
+        ? w.requestIdleCallback(next, { timeout: 2000 })
+        : window.setTimeout(next, 50);
+    };
+    const next = () => {
+      warmId = 0;
+      const job = warmQueue.shift();
+      if (!job) return;
+      job();
+      schedule();
+    };
+    schedule();
+  }
+
+  function cancelWarm() {
+    warmQueue = [];
+    if (!warmId) return;
+    const w = window as Window & { cancelIdleCallback?: (id: number) => void };
+    if (w.cancelIdleCallback) w.cancelIdleCallback(warmId);
+    else window.clearTimeout(warmId);
+    warmId = 0;
   }
 
   function lutFor(D: number) {
@@ -1225,6 +1289,11 @@ export function createSolarSystem(
         fade = ctx.createLinearGradient(W - w, 0, W, 0);
       } else {
         fade = ctx.createLinearGradient(0, H - 26, 0, H);
+        // the band starts at the very top of the screen: anything reaching
+        // it (the corona, a moon, a ring tip) dissolves instead of being cut
+        fadeTop = ctx.createLinearGradient(0, TOP_FADE, 0, 0);
+        fadeTop.addColorStop(0, "rgba(0,0,0,0)");
+        fadeTop.addColorStop(1, "rgba(0,0,0,1)");
       }
       fade.addColorStop(0, "rgba(0,0,0,0)");
       fade.addColorStop(1, "rgba(0,0,0,1)");
@@ -1236,6 +1305,10 @@ export function createSolarSystem(
       ctx.fillRect(W - w, 0, w, H);
     } else {
       ctx.fillRect(0, H - 26, W, 26);
+      if (fadeTop) {
+        ctx.fillStyle = fadeTop;
+        ctx.fillRect(0, 0, W, TOP_FADE);
+      }
     }
     ctx.globalCompositeOperation = "source-over";
   }
@@ -1283,8 +1356,9 @@ export function createSolarSystem(
     }
     if (second) drawBody(second);
     if (first) drawBody(first);
-    drawLabels();
     edgeFade();
+    // after the fade, so the label at the band's top edge stays crisp
+    drawLabels();
   }
 
   function step(dt: number) {
@@ -1349,6 +1423,7 @@ export function createSolarSystem(
       labels.clear();
       for (const b of bodies) b.globe = null;
       renderStatic();
+      warmUp();
     },
     setActive(index, color) {
       active = mapped(index) ? index : 0;
@@ -1375,6 +1450,7 @@ export function createSolarSystem(
     destroy() {
       running = false;
       cancelAnimationFrame(raf);
+      cancelWarm();
       maps?.destroy();
       luts.clear();
       labels.clear();

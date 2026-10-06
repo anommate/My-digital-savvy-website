@@ -36,8 +36,8 @@ const WIDTHS = (process.env.WIDTHS ?? "1440,1280,1024,390,375,360")
   .map((w) => Number(w.trim()))
   .filter(Boolean);
 const REDUCED_WIDTHS = [WIDTHS[0], WIDTHS.find((w) => w < 768)].filter(Boolean);
-const TWO_CYCLES_MS = 10_000; // the rotor spends 4.5s on each word
-const HERO_WINDOW_MS = 6_500; // long enough to see at least one word change
+const TWO_CYCLES_MS = 13_500; // the rotor spends 6.5s on each word
+const HERO_WINDOW_MS = 8_000; // long enough to see at least one word change
 const SETTLE_MS = 1_200; // services glow and bar transition for up to 0.6s
 const SAMPLE_MS = 200;
 

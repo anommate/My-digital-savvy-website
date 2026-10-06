@@ -135,11 +135,17 @@ export interface IndustriesContent {
   items: { tag: string; clients: string; color: AccentSlot }[];
 }
 
+/** The portfolio solar system that replaced the Selected Work list. */
 export interface WorkContent {
   heading: string;
   label: string;
-  items: { name: string; tag: string }[];
-  note: string;
+  /** where every click on the system goes */
+  href: string;
+  /** the visible call to action on the system, and its accessible name */
+  cta: string;
+  ariaLabel: string;
+  /** small caption before the live date */
+  live: string;
 }
 
 export interface CaseStudiesContent {

@@ -9,6 +9,7 @@ export function Footer({ footer }: { footer: FooterContent }) {
           canvasClassName="footer-logo-canvas"
           videoId="footerLogoVideo"
           canvasId="footerLogoCanvas"
+          onDark
         />
         <span className="label">{footer.copyright}</span>
       </div>

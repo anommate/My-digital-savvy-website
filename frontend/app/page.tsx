@@ -11,7 +11,7 @@ import { ServicesSection } from "@/components/sections/services/ServicesSection"
 import { Think } from "@/components/sections/Think";
 import { GrowthSystem } from "@/components/sections/GrowthSystem";
 import { Industries } from "@/components/sections/Industries";
-import { SelectedWork } from "@/components/sections/SelectedWork";
+import { PortfolioSystem } from "@/components/sections/PortfolioSystem";
 import { CaseStudies } from "@/components/sections/CaseStudies";
 import { About } from "@/components/sections/About";
 import { BlogPreview } from "@/components/sections/BlogPreview";
@@ -64,7 +64,7 @@ export default async function HomePage() {
         <Think think={c.think} />
         <GrowthSystem growth={c.growth} />
         <Industries industries={c.industries} />
-        <SelectedWork work={c.work} />
+        <PortfolioSystem work={c.work} />
         <CaseStudies caseStudies={c.caseStudies} />
         <About about={c.about} />
         <BlogPreview blog={c.blog} />

@@ -10,12 +10,14 @@ type Word = { word: string; color: string };
    the "hero rotor motion" block in 32-visuals.css.
      0      .is-out: the coloured word drifts up and fades out  (OUT_MS)
      500    swap the text while invisible, jump below (.is-below), rise in
-     1000   .go: its colour fills up through it                 (1.6s in CSS)
-     2600   hold, fully coloured
-     4500   next word */
+     1000   .go: its colour slowly fills up through it          (FILL_MS)
+     6000   fully coloured: a short beat                        (HOLD_MS)
+     6500   next word */
 const OUT_MS = 500; // = the .is-out transition duration in CSS
 const FILL_DELAY_MS = 500; // from the start of the rise to the fill
-const CYCLE_MS = 4500;
+const FILL_MS = 5000; // = the .go .fill transition duration in CSS
+const HOLD_MS = 500; // the finished word, before it leaves
+const CYCLE_MS = OUT_MS + FILL_DELAY_MS + FILL_MS + HOLD_MS;
 const FIRST_FILL_MS = 500; // first word is server-rendered; fill it once settled
 
 /**

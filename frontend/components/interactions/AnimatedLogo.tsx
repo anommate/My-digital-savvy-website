@@ -12,18 +12,36 @@ import { useEffect, useRef } from "react";
  * Off screen (IntersectionObserver), the loop and the video pause, so the
  * header and footer logos only cost anything while they can be seen.
  *
+ * Only the band of the frame the logo ever occupies (CROP, measured over
+ * the whole 8s loop) is drawn, so the canvas holds the logo alone: it can
+ * be shown much larger at the same pixel cost, with no empty margins.
+ *
+ * `onDark` draws the reversed logo for dark backgrounds: after keying,
+ * every pixel's lightness is inverted with its hue kept (navy wordmark →
+ * pale blue-white, black outlines → white, the grey plate → charcoal), so
+ * the cyan and the small coloured icons stay as they are.
+ *
  * PERFORMANCE NOTE: while visible, per-frame getImageData on the main
  * thread is still the heaviest thing it does. The visually identical
  * fix is a pre-keyed transparent asset.
  */
+
+/** where the logo sits in the video frame, as fractions of its size */
+const CROP = { x: 0.155, y: 0.35, w: 0.727, h: 0.293 };
+/** canvas resolution: the crop at ~half the 1920×1080 source */
+const CANVAS_W = 706;
+const CANVAS_H = 160;
+
 export function AnimatedLogo({
   canvasClassName,
   videoId,
   canvasId,
+  onDark = false,
 }: {
   canvasClassName: string;
   videoId: string;
   canvasId: string;
+  onDark?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,7 +72,20 @@ export function AnimatedLogo({
     function keyFrame() {
       if (failed || !video || !ctx) return;
       try {
-        ctx.drawImage(video, 0, 0, W, H);
+        const vw = video.videoWidth || 1920;
+        const vh = video.videoHeight || 1080;
+        ctx.clearRect(0, 0, W, H);
+        ctx.drawImage(
+          video,
+          vw * CROP.x,
+          vh * CROP.y,
+          vw * CROP.w,
+          vh * CROP.h,
+          0,
+          0,
+          W,
+          H
+        );
         const frame = ctx.getImageData(0, 0, W, H);
         const d = frame.data;
         for (let i = 0; i < d.length; i += 4) {
@@ -65,9 +96,20 @@ export function AnimatedLogo({
             hi = Math.max(r, g, b);
           const neutral = hi - lo < 18;
           const bright = (r + g + b) / 3;
-          if (neutral && bright > 224) d[i + 3] = 0;
-          else if (neutral && bright > 194)
+          if (neutral && bright > 224) {
+            d[i + 3] = 0;
+            continue;
+          }
+          if (neutral && bright > 194)
             d[i + 3] = Math.round(255 * (1 - (bright - 194) / (224 - 194)));
+          if (onDark) {
+            // HSL lightness L → 1 − L with hue and saturation kept: one
+            // shift of all three channels (clamped by the array)
+            const s = 255 - hi - lo;
+            d[i] = r + s;
+            d[i + 1] = g + s;
+            d[i + 2] = b + s;
+          }
         }
         ctx.putImageData(frame, 0, 0);
       } catch {
@@ -139,20 +181,29 @@ export function AnimatedLogo({
         )
       : null;
     io?.observe(canvas.parentElement ?? canvas);
+    // one keyed frame as soon as the video has data, even off screen, so
+    // the canvas is never empty when a fast scroll brings it into view
+    const prime = () => keyFrame();
 
     video.addEventListener("playing", start);
     document.addEventListener("visibilitychange", onVisibility);
-    if (video.readyState >= 2) tryPlay();
-    else video.addEventListener("loadeddata", tryPlay, { once: true });
+    if (video.readyState >= 2) {
+      prime();
+      tryPlay();
+    } else {
+      video.addEventListener("loadeddata", prime, { once: true });
+      video.addEventListener("loadeddata", tryPlay, { once: true });
+    }
 
     return () => {
       stop();
       io?.disconnect();
       video.removeEventListener("playing", start);
+      video.removeEventListener("loadeddata", prime);
       video.removeEventListener("loadeddata", tryPlay);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [onDark]);
 
   return (
     <>
@@ -170,8 +221,8 @@ export function AnimatedLogo({
         ref={canvasRef}
         id={canvasId}
         className={canvasClassName}
-        width={480}
-        height={270}
+        width={CANVAS_W}
+        height={CANVAS_H}
         aria-hidden="true"
       />
     </>
