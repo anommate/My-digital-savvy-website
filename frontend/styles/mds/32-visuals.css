@@ -186,3 +186,115 @@ section { padding-top: clamp(64px, 7vw, 108px); }
     width: min(21vw, 340px);
   }
 }
+
+/* ── SERVICES: WIDER PANELS ──────────────────────────────────────────
+   The reference capped each service panel at 680px and padded it again
+   inside, leaving ~540px for the copy: the description ran to three
+   lines, "how" to four and the deliverables to two rows, stacked in a
+   narrow column beside empty space. The panels now use that space.
+
+   - Desktop (pinned sequence): the panel is centred in the area to the
+     right of the arc index, up to 1120px wide, so it can never sit under
+     the numbers. Paragraphs get a ~64ch measure, the comfortable upper
+     range for reading, and the deliverables fit on one row.
+   - Tablets and phones: the panel spans the full width beside the mini
+     index (the reference held tablets at 680px with a dead strip).
+   - The colour wash behind the panel widens and follows it. */
+#services {
+  /* the arc index's right edge plus breathing room */
+  --wd-clear: calc(clamp(60px, 11vw, 190px) + clamp(56px, 6vw, 96px));
+}
+.wd-sub,
+.wd-how { max-width: 64ch; }
+.wd-outcome { max-width: 60ch; }
+
+@media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+  .wd-panels {
+    flex: 0 1 1120px;
+    width: auto;
+    margin-left: var(--wd-clear);
+    margin-right: var(--pad);
+    padding-inline: 0;
+  }
+  .wd-panel { padding-inline: 0; }
+  .wd-stage::before {
+    background: radial-gradient(
+      ellipse min(900px, 62vw) 600px
+        at calc((var(--wd-clear) + 100% - var(--pad)) / 2) 42%,
+      color-mix(in srgb, var(--accent) 9%, transparent),
+      transparent 70%
+    );
+  }
+}
+@media (max-width: 860px) {
+  .wd-panels { width: 100%; }
+}
+/* Very short screens (phones held sideways): a smaller icon keeps the
+   whole panel inside the pinned stage instead of clipping its top. */
+@media (max-height: 460px) and (prefers-reduced-motion: no-preference) {
+  .wd-mark { width: 36px; margin-bottom: 4px; }
+}
+/* Reduced motion unpins the panels into normal flow, where the reference
+   padded them twice (container and panel), squeezing phone copy to about
+   240px. The panel's own padding is enough, and the mini index it left
+   room for is hidden in this mode. */
+@media (prefers-reduced-motion: reduce) {
+  .wd-panels { padding-inline: 0; }
+}
+@media (max-width: 860px) and (prefers-reduced-motion: reduce) {
+  .wd-panel { padding-left: var(--pad); }
+}
+
+/* ── SERVICES: SOLAR-SYSTEM INDEX ────────────────────────────────────
+   The 01–09 index is drawn as the Sun and the eight planets
+   (SolarSystemNav.tsx, lib/solar-system). It keeps the old rail's class,
+   so ServicesScroll's cursor drift still moves it; only its box changes.
+   - Desktop: the left region, up to where the panel starts (--wd-clear),
+     the full height of the pinned stage.
+   - Phones and tablets: a band across the top of the stage, with the
+     panel centred below it. The old mini index's 34px gutter returns to
+     the text.
+   - Phones held sideways: too short for a band, so the left gutter.
+   - Reduced motion: a static strip above the stacked list. */
+.ss-nav { pointer-events: none; }
+.ss-nav canvas { display: block; width: 100%; height: 100%; }
+
+@media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+  .ss-nav.wd-rail {
+    left: 0; top: 0; bottom: 0;
+    width: calc(var(--wd-clear) - 12px);
+  }
+}
+@media (max-width: 860px) and (min-height: 501px) and (prefers-reduced-motion: no-preference) {
+  /* taller where the screen allows; keeps ~590px for the panel itself */
+  #services { --ss-band: clamp(56px, min(14svh, calc(100svh - 590px)), 130px); }
+  .ss-nav.wd-rail {
+    display: block;
+    left: 0; right: 0; top: 0;
+    height: var(--ss-band);
+  }
+  .wd-panels { margin-top: var(--ss-band); }
+  .wd-panel { padding-left: var(--pad); }
+}
+@media (max-width: 860px) and (max-height: 500px) and (prefers-reduced-motion: no-preference) {
+  .ss-nav.wd-rail {
+    display: block;
+    left: 0; top: 0; bottom: 0;
+    width: calc(var(--pad) + 28px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The reference left the active panel's centring transform on in this
+     stacked layout, so the first service was pulled up by half its height
+     over whatever sits above the list. */
+  .wd-panel.is-on,
+  .wd-panel.is-out { transform: none; }
+  .ss-nav.wd-rail {
+    display: block;
+    position: relative;
+    left: auto; top: auto;
+    width: 100%;
+    height: clamp(110px, 16vw, 180px);
+    transform: none;
+  }
+}

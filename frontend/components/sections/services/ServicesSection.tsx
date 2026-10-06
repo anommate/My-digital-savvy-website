@@ -2,11 +2,13 @@ import type { ServicesContent } from "@/types/home";
 import { cssVars } from "@/components/ui/accent";
 import { ServicePanel } from "./ServicePanel";
 import { ServicesScroll } from "./ServicesScroll";
+import { SolarSystemNav } from "@/components/interactions/SolarSystemNav";
 
 /**
  * Pinned nine-panel sequence. Server-rendered in the state the reference
- * reaches right after load (panel 01 active, first arc number and bar lit);
- * ServicesScroll then drives it from scroll position.
+ * reaches right after load (panel 01 active); ServicesScroll then drives it
+ * from scroll position. The index beside the panels is a solar system
+ * (Sun = service 01 … Neptune = 09) that follows the active panel.
  */
 export function ServicesSection({ services }: { services: ServicesContent }) {
   const n = services.items.length;
@@ -21,36 +23,12 @@ export function ServicesSection({ services }: { services: ServicesContent }) {
 
       <div className="wd-track" id="wdTrack" style={cssVars({ "--n": n })}>
         <div className="wd-stage">
-          {/* rotating arc index */}
-          <div className="wd-rail" aria-hidden="true">
-            <div className="wd-ring" id="wdRing">
-              <span className="wd-arc"></span>
-              {services.items.map((s, i) => (
-                <b
-                  key={s.slug}
-                  className={i === 0 ? "wd-num is-on" : "wd-num"}
-                  style={cssVars({ "--i": i })}
-                >
-                  {s.number}
-                </b>
-              ))}
-            </div>
-            <span className="wd-pip"></span>
-          </div>
+          {/* the service index: Sun + eight planets, one per service */}
+          <SolarSystemNav count={n} />
 
           {/* how far through the nine services */}
           <div className="wd-progress" aria-hidden="true">
             <div className="wd-progress-fill" id="wdProgressFill"></div>
-          </div>
-
-          {/* compact index for small screens */}
-          <div className="wd-mini" aria-hidden="true">
-            <b id="wdMiniNum">{services.items[0]?.number}</b>
-            <span className="wd-bars">
-              {services.items.map((s, i) => (
-                <i key={s.slug} className={i === 0 ? "is-on" : undefined}></i>
-              ))}
-            </span>
           </div>
 
           <div className="wd-panels" id="wdPanels">
