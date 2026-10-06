@@ -256,18 +256,44 @@ section { padding-top: clamp(64px, 7vw, 108px); }
      the text.
    - Phones held sideways: too short for a band, so the left gutter.
    - Reduced motion: a static strip above the stacked list. */
+/* Scroll distance per service. The reference gave each service 89% of a
+   screen of scroll in which nothing on the pinned stage moved, so a
+   normal wheel or trackpad gesture usually changed nothing (the "scroll
+   twice" bug). Now every pixel moves the solar system, ServicesScroll
+   glides each gesture to the next rest, and a service is 62% of a screen,
+   so the glides after small gestures stay short. One more service-length
+   at each end (arrival before service 01, departure after the last) gives
+   a gesture entering the section room to settle on the first service. */
+@media (prefers-reduced-motion: no-preference) {
+  .wd-track { height: calc(100svh + (var(--n) + 1) * 62svh); }
+}
 .ss-nav { pointer-events: none; }
 .ss-nav canvas { display: block; width: 100%; height: 100%; }
 
 @media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+  /* The canvas runs from the left edge into the empty margin beside the
+     centred text, stopping 72px short of it (never narrower than the old
+     rail, never wider than 460px), so the focused planet can be large
+     without moving or touching any content. --ss-text is the left edge of
+     the text column: the panel area is centred in what is left after
+     --wd-clear and --pad, and the text (640px at most) is centred in it. */
+  #services {
+    --ss-area: min(1120px, 100vw - var(--wd-clear) - var(--pad));
+    --ss-text: calc(
+      var(--wd-clear) +
+      max(0px, (100vw - var(--wd-clear) - var(--pad) - 1120px) / 2) +
+      (var(--ss-area) - 640px) / 2
+    );
+  }
   .ss-nav.wd-rail {
     left: 0; top: 0; bottom: 0;
-    width: calc(var(--wd-clear) - 12px);
+    width: clamp(calc(var(--wd-clear) - 12px), calc(var(--ss-text) - 72px), 460px);
   }
 }
 @media (max-width: 860px) and (min-height: 501px) and (prefers-reduced-motion: no-preference) {
-  /* taller where the screen allows; keeps ~590px for the panel itself */
-  #services { --ss-band: clamp(56px, min(14svh, calc(100svh - 590px)), 130px); }
+  /* as tall as the screen allows: the tallest panel needs ~530px plus a
+     little air above and below (measured at 360–412px wide) */
+  #services { --ss-band: clamp(64px, calc(100svh - 590px), 190px); }
   .ss-nav.wd-rail {
     display: block;
     left: 0; right: 0; top: 0;
@@ -297,4 +323,25 @@ section { padding-top: clamp(64px, 7vw, 108px); }
     height: clamp(110px, 16vw, 180px);
     transform: none;
   }
+}
+
+/* ── HEADER: SOFT FROSTED BAR ────────────────────────────────────────
+   The bar's #f6f5f2 still read as near-white against the page's
+   near-black sections. A frosted, bone-toned finish instead: a gentle
+   top-to-bottom tone (about #ecebe6 → #e3e1db over the page), a fine
+   highlight along the top and a hairline at the bottom edge. It stays
+   almost opaque on purpose: the header sits in the page flow above the
+   dark page, so a see-through glass would only show flat black through
+   it. Text, logo and the dark CTA keep their contrast. */
+header {
+  background: linear-gradient(
+    180deg,
+    rgba(246, 244, 239, 0.96) 0%,
+    rgba(236, 234, 228, 0.96) 100%
+  );
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(10, 10, 10, 0.08);
 }

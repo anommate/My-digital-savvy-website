@@ -11,7 +11,9 @@
  * - periods keep the real hierarchy (Mercury fastest, Neptune slowest),
  *   accelerated as real period ^ 0.55 with Earth at 30s per orbit
  * - moons are a small curated set of major, recognisable moons per planet;
- *   inner moons orbit faster than outer ones, Triton orbits backwards
+ *   inner moons orbit faster than outer ones, Triton orbits backwards;
+ *   `ratio` is each moon's true radius over its planet's (mean radii in
+ *   km), used when its planet is in focus
  *
  * Units: `size` is a body's visual radius in Earth radii (scaled to pixels
  * by the renderer), `orbit` is 0..1 between the innermost and outermost
@@ -44,6 +46,8 @@ export type MoonData = {
   inclination: number;
   /** 1 = prograde, -1 = retrograde (Triton) */
   direction: 1 | -1;
+  /** true radius relative to the parent planet (sizes the moon when its planet is in focus) */
+  ratio: number;
   color: string;
   /** kept when the system is drawn small (phones) */
   essential?: boolean;
@@ -133,6 +137,7 @@ export const BODIES: BodyData[] = [
         id: "moon",
         name: "Moon",
         size: 0.32,
+        ratio: 1737 / 6371,
         orbitRadius: 2.6,
         period: 13,
         phase: 0.8,
@@ -158,6 +163,7 @@ export const BODIES: BodyData[] = [
         id: "phobos",
         name: "Phobos",
         size: 0.15,
+        ratio: 11.3 / 3390,
         orbitRadius: 1.9,
         period: 5,
         phase: 0.2,
@@ -170,6 +176,7 @@ export const BODIES: BodyData[] = [
         id: "deimos",
         name: "Deimos",
         size: 0.12,
+        ratio: 6.2 / 3390,
         orbitRadius: 2.7,
         period: 11,
         phase: 2.6,
@@ -194,6 +201,7 @@ export const BODIES: BodyData[] = [
         id: "amalthea",
         name: "Amalthea",
         size: 0.15,
+        ratio: 83 / 69911,
         orbitRadius: 1.5,
         period: 5.5,
         phase: 4.1,
@@ -205,6 +213,7 @@ export const BODIES: BodyData[] = [
         id: "io",
         name: "Io",
         size: 0.4,
+        ratio: 1822 / 69911,
         orbitRadius: 1.85,
         period: 8.5,
         phase: 0.6,
@@ -217,6 +226,7 @@ export const BODIES: BodyData[] = [
         id: "europa",
         name: "Europa",
         size: 0.36,
+        ratio: 1561 / 69911,
         orbitRadius: 2.2,
         period: 13,
         phase: 2.2,
@@ -229,6 +239,7 @@ export const BODIES: BodyData[] = [
         id: "ganymede",
         name: "Ganymede",
         size: 0.5,
+        ratio: 2634 / 69911,
         orbitRadius: 2.6,
         period: 20,
         phase: 3.7,
@@ -241,6 +252,7 @@ export const BODIES: BodyData[] = [
         id: "callisto",
         name: "Callisto",
         size: 0.46,
+        ratio: 2410 / 69911,
         orbitRadius: 3.05,
         period: 33,
         phase: 5.4,
@@ -267,6 +279,7 @@ export const BODIES: BodyData[] = [
         id: "enceladus",
         name: "Enceladus",
         size: 0.16,
+        ratio: 252 / 58232,
         orbitRadius: 2.45,
         period: 7.5,
         phase: 1.1,
@@ -278,6 +291,7 @@ export const BODIES: BodyData[] = [
         id: "dione",
         name: "Dione",
         size: 0.22,
+        ratio: 561 / 58232,
         orbitRadius: 2.75,
         period: 11,
         phase: 3.9,
@@ -289,6 +303,7 @@ export const BODIES: BodyData[] = [
         id: "rhea",
         name: "Rhea",
         size: 0.26,
+        ratio: 764 / 58232,
         orbitRadius: 3.05,
         period: 16,
         phase: 5.6,
@@ -300,6 +315,7 @@ export const BODIES: BodyData[] = [
         id: "titan",
         name: "Titan",
         size: 0.48,
+        ratio: 2575 / 58232,
         orbitRadius: 3.5,
         period: 30,
         phase: 2.4,
@@ -322,12 +338,14 @@ export const BODIES: BodyData[] = [
     planeTilt: 82,
     planeFlatten: 0.55,
     atmosphere: "rgba(170, 235, 240, 0.5)",
-    rings: { inner: 1.6, outer: 1.75, color: "#a9d6dc", opacity: 0.22 },
+    // narrow, faint rings (the brightest, epsilon, is only tens of km wide)
+    rings: { inner: 1.63, outer: 1.68, color: "#a9d6dc", opacity: 0.2 },
     moons: [
       {
         id: "ariel",
         name: "Ariel",
         size: 0.22,
+        ratio: 579 / 25362,
         orbitRadius: 2.0,
         period: 9,
         phase: 0.4,
@@ -339,6 +357,7 @@ export const BODIES: BodyData[] = [
         id: "titania",
         name: "Titania",
         size: 0.26,
+        ratio: 789 / 25362,
         orbitRadius: 2.6,
         period: 18,
         phase: 2.9,
@@ -351,6 +370,7 @@ export const BODIES: BodyData[] = [
         id: "oberon",
         name: "Oberon",
         size: 0.25,
+        ratio: 761 / 25362,
         orbitRadius: 3.1,
         period: 27,
         phase: 4.8,
@@ -376,6 +396,7 @@ export const BODIES: BodyData[] = [
         id: "proteus",
         name: "Proteus",
         size: 0.15,
+        ratio: 210 / 24622,
         orbitRadius: 1.8,
         period: 8,
         phase: 1.7,
@@ -388,6 +409,7 @@ export const BODIES: BodyData[] = [
         id: "triton",
         name: "Triton",
         size: 0.34,
+        ratio: 1353 / 24622,
         orbitRadius: 2.8,
         period: 17,
         phase: 4.2,

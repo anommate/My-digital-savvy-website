@@ -9,10 +9,12 @@ import { useEffect, useRef } from "react";
  * The <video> is visually hidden (never display:none, which stops decoding).
  * Falls back to the plain video if the canvas can't read its own pixels.
  * Under reduced motion it draws one settled frame instead of looping.
+ * Off screen (IntersectionObserver), the loop and the video pause, so the
+ * header and footer logos only cost anything while they can be seen.
  *
- * PERFORMANCE FLAG (deferred to the performance pass, not changed here):
- * per-frame getImageData on the main thread is the heaviest thing on the
- * page. The visually identical fix is a pre-keyed transparent asset.
+ * PERFORMANCE NOTE: while visible, per-frame getImageData on the main
+ * thread is still the heaviest thing it does. The visually identical
+ * fix is a pre-keyed transparent asset.
  */
 export function AnimatedLogo({
   canvasClassName,
@@ -112,9 +114,31 @@ export function AnimatedLogo({
       if (document.hidden) stop();
       else if (!video.paused) start();
     };
+    // Only animate while the logo is (nearly) on screen: off screen, the
+    // per-frame pixel work and the video decode are both paused. The
+    // wrapper is observed, not the canvas, so the plain-video fallback
+    // (canvas hidden) is still played while visible. Without
+    // IntersectionObserver it simply always runs, as before.
+    const canObserve = "IntersectionObserver" in window;
+    let onScreen = !canObserve;
     const tryPlay = () => {
-      video.play().catch(() => {});
+      if (onScreen) video.play().catch(() => {});
     };
+    const io = canObserve
+      ? new IntersectionObserver(
+          ([entry]) => {
+            onScreen = entry.isIntersecting;
+            if (!onScreen) {
+              stop();
+              video.pause();
+            } else if (video.paused) {
+              if (video.readyState >= 2) tryPlay();
+            } else if (!document.hidden) start();
+          },
+          { rootMargin: "120px 0px" }
+        )
+      : null;
+    io?.observe(canvas.parentElement ?? canvas);
 
     video.addEventListener("playing", start);
     document.addEventListener("visibilitychange", onVisibility);
@@ -123,6 +147,7 @@ export function AnimatedLogo({
 
     return () => {
       stop();
+      io?.disconnect();
       video.removeEventListener("playing", start);
       video.removeEventListener("loadeddata", tryPlay);
       document.removeEventListener("visibilitychange", onVisibility);

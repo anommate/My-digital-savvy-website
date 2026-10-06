@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { SolarEngine } from "@/lib/solar-system/engine";
+import { servicesProgress } from "@/components/sections/services/servicesProgress";
 
 /**
  * The services index (01–09) drawn as the Sun and the eight planets; see
@@ -36,6 +37,7 @@ export function SolarSystemNav({ count }: { count: number }) {
     ).matches;
 
     let engine: SolarEngine | null = null;
+    const devPin = { s: NaN };
     let disposed = false;
     let loading = false;
     let inView = false;
@@ -66,6 +68,16 @@ export function SolarSystemNav({ count }: { count: number }) {
         // phones: 30fps is plenty for slow orbits and halves the work
         lowPower: window.matchMedia("(pointer: coarse), (max-width: 860px)")
           .matches,
+        // the camera follows the scroll position ServicesScroll publishes
+        // (development builds can pin it for visual checks; see below)
+        progress: reduce
+          ? undefined
+          : process.env.NODE_ENV !== "production"
+            ? () => (Number.isNaN(devPin.s) ? servicesProgress.s : devPin.s)
+            : () => servicesProgress.s,
+        colors: panels.map((p) =>
+          getComputedStyle(p).getPropertyValue("--c").trim()
+        ),
       });
       const box = el.getBoundingClientRect();
       engine.resize(box.width, box.height);
@@ -74,6 +86,8 @@ export function SolarSystemNav({ count }: { count: number }) {
       el.dataset.ready = "1";
       if (process.env.NODE_ENV !== "production") {
         (el as HTMLElement & { __solar?: SolarEngine }).__solar = engine;
+        (el as HTMLElement & { __solarPin?: { s: number } }).__solarPin =
+          devPin;
       }
       sync();
     };
