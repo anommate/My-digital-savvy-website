@@ -1,14 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Port of the reference's chromaKeyLogo(): the logo video renders on a flat
  * white background, so every frame is drawn to a canvas and near-white,
  * low-saturation pixels are keyed out live, with a short feathered band.
  * The <video> is visually hidden (never display:none, which stops decoding).
- * Falls back to the plain video if the canvas can't read its own pixels.
  * Under reduced motion it draws one settled frame instead of looping.
+ *
+ * A static, pre-keyed copy of the settled frame (/logo-light.png,
+ * /logo-dark.png — same crop, same key, same 706×160) is server-rendered
+ * in the canvas's place and stays until the video is actually playing.
+ * Mobile browsers often never deliver frames (iOS Low Power Mode, data
+ * saver, autoplay blocked, slow 1.8 MB download), which used to leave an
+ * empty canvas — an invisible logo. If the canvas can't read the video's
+ * pixels, the static logo simply stays.
  * Off screen (IntersectionObserver), the loop and the video pause, so the
  * header and footer logos only cost anything while they can be seen.
  *
@@ -45,6 +53,8 @@ export function AnimatedLogo({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // true once the canvas holds real keyed frames; until then the static logo shows
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -62,15 +72,14 @@ export function AnimatedLogo({
     let raf: number | null = null;
     video.muted = true; // React doesn't reliably reflect `muted`; play() needs it.
 
-    function fallbackToPlainVideo() {
-      if (failed || !video || !canvas) return;
+    function fallbackToStatic() {
+      if (failed) return;
       failed = true;
-      canvas.style.display = "none";
-      video.classList.add("chroma-fallback");
+      setLive(false);
     }
 
     function keyFrame() {
-      if (failed || !video || !ctx) return;
+      if (failed || !video || !ctx) return false;
       try {
         const vw = video.videoWidth || 1920;
         const vh = video.videoHeight || 1080;
@@ -112,8 +121,10 @@ export function AnimatedLogo({
           }
         }
         ctx.putImageData(frame, 0, 0);
+        return true;
       } catch {
-        fallbackToPlainVideo();
+        fallbackToStatic();
+        return false;
       }
     }
 
@@ -124,7 +135,7 @@ export function AnimatedLogo({
         video.currentTime = Math.min(7, video.duration || 7);
         const once = () => {
           video.removeEventListener("seeked", once);
-          keyFrame();
+          if (keyFrame()) setLive(true);
         };
         video.addEventListener("seeked", once);
         cleanups.push(() => video.removeEventListener("seeked", once));
@@ -139,8 +150,14 @@ export function AnimatedLogo({
       return () => cleanups.forEach((fn) => fn());
     }
 
+    // only runs while the video plays, so its first keyed frame is the
+    // moment the canvas replaces the static logo
+    let shown = false;
     const loop = () => {
-      keyFrame();
+      if (keyFrame() && !shown) {
+        shown = true;
+        setLive(true);
+      }
       if (!failed) raf = requestAnimationFrame(loop);
     };
     const start = () => {
@@ -158,9 +175,9 @@ export function AnimatedLogo({
     };
     // Only animate while the logo is (nearly) on screen: off screen, the
     // per-frame pixel work and the video decode are both paused. The
-    // wrapper is observed, not the canvas, so the plain-video fallback
-    // (canvas hidden) is still played while visible. Without
-    // IntersectionObserver it simply always runs, as before.
+    // wrapper is observed, not the canvas, because the canvas stays
+    // display:none (never intersecting) until it has a frame to show.
+    // Without IntersectionObserver it simply always runs, as before.
     const canObserve = "IntersectionObserver" in window;
     let onScreen = !canObserve;
     const tryPlay = () => {
@@ -217,6 +234,17 @@ export function AnimatedLogo({
         playsInline
         preload="auto"
       />
+      {live ? null : (
+        <Image
+          src={onDark ? "/logo-dark.png" : "/logo-light.png"}
+          alt="My Digital Savvy"
+          className={canvasClassName}
+          width={CANVAS_W}
+          height={CANVAS_H}
+          priority={!onDark}
+          unoptimized
+        />
+      )}
       <canvas
         ref={canvasRef}
         id={canvasId}
@@ -224,6 +252,7 @@ export function AnimatedLogo({
         width={CANVAS_W}
         height={CANVAS_H}
         aria-hidden="true"
+        style={live ? undefined : { display: "none" }}
       />
     </>
   );

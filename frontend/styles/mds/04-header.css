@@ -95,16 +95,8 @@ header {
   position: absolute; width: 1px; height: 1px;
   opacity: 0; pointer-events: none; overflow: hidden;
 }
-/* Fallback for when the chroma-key canvas can't read the video's pixels
-   (e.g. opened as a local file:// page, where Chromium treats the video
-   as cross-origin and taints the canvas) — the JS below swaps to this
-   class instead of leaving a frozen, half-drawn canvas on screen. Plain
-   un-keyed video, so it carries its own white background rather than a
-   transparent cutout. */
-.logo-source-video.chroma-fallback {
-  position: static; opacity: 1; overflow: visible;
-  width: auto; height: 132px;
-}
+/* .site-logo-canvas also sizes the static logo <img> that stands in for
+   the canvas until the video plays (or for good, if it never can). */
 .site-logo-canvas { display: block; height: 132px; width: auto; }
 .site-logo:hover { opacity: 0.8; }
 .nav-cta {
@@ -125,6 +117,5 @@ a.btn.nav-cta:hover { background: var(--accent); color: #000; border-color: var(
    order, leaving this button visibly overlapping the mobile drawer/nav. */
 @media (max-width: 860px) {
   .site-logo-canvas { height: 72px; }
-  .logo-source-video.chroma-fallback { height: 72px; }
   a.nav-cta { display: none; }
 }

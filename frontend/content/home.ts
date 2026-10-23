@@ -61,8 +61,8 @@ export const homeContent: HomeContent = {
     heading: "Results, not promises",
     label: "Every number below is publicly verifiable",
     facts: [
-      { countTo: 200, suffix: "+", label: "Clients served" },
-      { countTo: 8, suffix: "+", label: "Years in business" },
+      { countTo: 185, suffix: "+", label: "Clients served" },
+      { countTo: 8, suffix: "+", label: "Years of experience" },
       { countTo: 320, suffix: "+", label: "Five-star reviews" },
       {
         countTo: null,
