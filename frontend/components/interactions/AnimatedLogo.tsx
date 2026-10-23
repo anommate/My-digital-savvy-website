@@ -13,9 +13,9 @@ import { useEffect, useRef, useState } from "react";
  * A static, pre-keyed copy of the settled frame (/logo-light.png,
  * /logo-dark.png — same crop, same key, same 706×160) is server-rendered
  * in the canvas's place and stays until the video is actually playing.
- * Mobile browsers often never deliver frames (iOS Low Power Mode, data
- * saver, autoplay blocked, slow 1.8 MB download), which used to leave an
- * empty canvas — an invisible logo. If the canvas can't read the video's
+ * Mobile browsers don't always deliver frames (iOS Low Power Mode,
+ * autoplay blocked, a slow 1.8 MB download), which used to leave an empty
+ * canvas — an invisible logo. If the canvas can't read the video's
  * pixels, the static logo simply stays.
  * Off screen (IntersectionObserver), the loop and the video pause, so the
  * header and footer logos only cost anything while they can be seen.
@@ -171,7 +171,8 @@ export function AnimatedLogo({
     };
     const onVisibility = () => {
       if (document.hidden) stop();
-      else if (!video.paused) start();
+      else if (video.paused) tryPlay();
+      else start();
     };
     // Only animate while the logo is (nearly) on screen: off screen, the
     // per-frame pixel work and the video decode are both paused. The
@@ -180,9 +181,31 @@ export function AnimatedLogo({
     // Without IntersectionObserver it simply always runs, as before.
     const canObserve = "IntersectionObserver" in window;
     let onScreen = !canObserve;
-    const tryPlay = () => {
-      if (onScreen) video.play().catch(() => {});
-    };
+    // play() is called as soon as the logo is on screen, never after
+    // waiting for data: iOS Safari loads no video data until play() is
+    // called (it treats preload="auto" as "metadata"), so waiting for
+    // loadeddata first meant the animation never started on iPhones. If
+    // autoplay itself is refused (iOS Low Power Mode, or a browser set to
+    // block it), the first tap, click or key press on the page retries.
+    const GESTURES = ["touchend", "click", "keydown"] as const;
+    let awaitingGesture = false;
+    function onGesture() {
+      awaitingGesture = false;
+      GESTURES.forEach((t) => document.removeEventListener(t, onGesture));
+      tryPlay();
+    }
+    function tryPlay() {
+      if (!video || !onScreen || !video.paused) return;
+      video.play().catch((err: unknown) => {
+        if (awaitingGesture) return;
+        if (!(err instanceof DOMException) || err.name !== "NotAllowedError")
+          return;
+        awaitingGesture = true;
+        GESTURES.forEach((t) =>
+          document.addEventListener(t, onGesture, { passive: true })
+        );
+      });
+    }
     const io = canObserve
       ? new IntersectionObserver(
           ([entry]) => {
@@ -190,9 +213,8 @@ export function AnimatedLogo({
             if (!onScreen) {
               stop();
               video.pause();
-            } else if (video.paused) {
-              if (video.readyState >= 2) tryPlay();
-            } else if (!document.hidden) start();
+            } else if (video.paused) tryPlay();
+            else if (!document.hidden) start();
           },
           { rootMargin: "120px 0px" }
         )
@@ -204,21 +226,17 @@ export function AnimatedLogo({
 
     video.addEventListener("playing", start);
     document.addEventListener("visibilitychange", onVisibility);
-    if (video.readyState >= 2) {
-      prime();
-      tryPlay();
-    } else {
-      video.addEventListener("loadeddata", prime, { once: true });
-      video.addEventListener("loadeddata", tryPlay, { once: true });
-    }
+    if (video.readyState >= 2) prime();
+    else video.addEventListener("loadeddata", prime, { once: true });
+    tryPlay();
 
     return () => {
       stop();
       io?.disconnect();
       video.removeEventListener("playing", start);
       video.removeEventListener("loadeddata", prime);
-      video.removeEventListener("loadeddata", tryPlay);
       document.removeEventListener("visibilitychange", onVisibility);
+      GESTURES.forEach((t) => document.removeEventListener(t, onGesture));
     };
   }, [onDark]);
 
